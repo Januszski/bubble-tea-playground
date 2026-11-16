@@ -20,7 +20,7 @@ type Wizard struct {
 	step WizardStep
 
 	githubTeams models.MultiSelect
-	appGroups   models.MultiSelect
+	appGroups   models.MultiAutocomplete
 }
 
 func (w *Wizard) Next() {
@@ -47,11 +47,19 @@ func NewWizard() Wizard {
 			"DevOps",
 		}),
 
-		appGroups: models.NewMultiSelect("Select your application groups", []string{
-			"Production",
-			"Staging",
-			"Development",
-		}),
+		appGroups: models.NewMultiAutocomplete(
+			"Select your application groups",
+			[]string{
+				"Production",
+				"Staging",
+				"Development",
+				"Development-East",
+				"Development-West",
+				"Testing",
+				"Security",
+				"Infrastructure",
+			},
+		),
 	}
 }
 
@@ -64,24 +72,41 @@ func (w Wizard) Update(msg tea.Msg) (Wizard, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "left", "h":
+			if w.step == GroupsStep && w.appGroups.Focused() {
+				break
+			}
+
 			w.Previous()
 			return w, nil
 
 		case "right", "l":
+			if w.step == GroupsStep && w.appGroups.Focused() {
+				break
+			}
+
 			w.Next()
 			return w, nil
 
+		case "esc":
+			if w.step == GroupsStep && w.appGroups.Focused() {
+				break
+			}
+
+			w.Previous()
+			return w, nil
 		case "enter":
-			if w.step == TeamsStep && len(w.githubTeams.SelectedValues()) == 0 {
+			if w.step == TeamsStep {
+				if len(w.githubTeams.SelectedValues()) == 0 {
+					return w, nil
+				}
+
+				w.Next()
 				return w, nil
 			}
 
-			if w.step == GroupsStep && len(w.appGroups.SelectedValues()) == 0 {
+			if w.step == ReviewStep {
 				return w, nil
 			}
-
-			w.Next()
-			return w, nil
 
 		case "q", "ctrl+c":
 			return w, tea.Quit
@@ -110,7 +135,7 @@ func (w Wizard) View() string {
 		return w.githubTeams.View() + "\n\nPress enter to continue."
 
 	case GroupsStep:
-		return w.appGroups.View() + "\n\nPress enter to continue."
+		return w.appGroups.View() + "\n\nPress → to continue."
 
 	case ReviewStep:
 		return fmt.Sprintf(

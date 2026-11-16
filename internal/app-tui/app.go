@@ -66,11 +66,15 @@ func (a App) View() tea.View {
 
 	content := a.wizard.View()
 
+	contentStyle := lipgloss.NewStyle().
+		Width(50).
+		Align(lipgloss.Left)
+
 	styled := lipgloss.NewStyle().
 		Width(a.width).
 		Height(a.height).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(content)
+		Render(contentStyle.Render(content))
 
 	view.SetContent(styled)
 
